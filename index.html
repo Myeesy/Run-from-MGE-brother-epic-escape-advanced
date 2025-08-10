@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RUN AWAY FROM MGE BROTHER</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #222;
+    }
+
+    #game {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background-color: #333;
+      cursor: crosshair;
+    }
+
+    .player, .enemy {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background-size: cover;
+      background-repeat: no-repeat;
+    }
+
+    .player {
+      background-image: url(https://www.models-resource.com/resources/big_icons/7/6574.png?updated=1434968974);
+      left: 50px;
+      top: 50px;
+    }
+
+    .enemy1 {
+      background-image: url("https://images.steamusercontent.com/ugc/800988890988585263/43B3C3D6F7C6AE03E1EC4ADAC4FE2A8FF78C9E08/");
+    }
+
+    .enemy2 {
+      background-image: url("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ8ZQyiy_P2FWbeEOcbJY27DyBWSAWm0T821A&s");
+      display: none;
+    }
+
+    #gameOver, #winText {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      font-family: Arial, sans-serif;
+      display: none;
+      color: white;
+    }
+
+    #gameOver {
+      color: red;
+    }
+
+    #timer {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-size: 24px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div class="player" id="player"></div>
+    <div class="enemy enemy1" id="enemy1"></div>
+    <div class="enemy enemy2" id="enemy2"></div>
+    <div id="gameOver">GAME OVER</div>
+    <div id="winText">YOU WIN!</div>
+    <div id="timer">Time: 70</div>
+    <audio id="gameMusic" src="joji_tiktik.mp3"></audio>
+  </div>
+
+  <script>
+    const player = document.getElementById("player");
+    const enemy1 = document.getElementById("enemy1");
+    const enemy2 = document.getElementById("enemy2");
+    const gameOverText = document.getElementById("gameOver");
+    const winText = document.getElementById("winText");
+    const timerDisplay = document.getElementById("timer");
+    const gameMusic = document.getElementById("gameMusic");
+
+    let playerX = 50, playerY = 50;
+    let targetX = playerX, targetY = playerY;
+    let enemy1X = window.innerWidth * 0.8, enemy1Y = window.innerHeight * 0.8;
+    let enemy2X = window.innerWidth * 0.2, enemy2Y = window.innerHeight * 0.8;
+    const playerSpeed = 8;
+    let enemy1Speed = 1.5;
+    let enemy2Speed = 1.0; // другий ворог повільніший
+    let gameRunning = true;
+    let timeLeft = 70;
+    let secondEnemyActive = false;
+
+    // Start music
+    gameMusic.play();
+    setTimeout(() => {
+      gameMusic.pause();
+      gameMusic.currentTime = 0;
+    }, 30000);
+
+    // Mouse control
+    document.getElementById("game").addEventListener("mousemove", (e) => {
+      targetX = e.clientX - 50;
+      targetY = e.clientY - 50;
+    });
+
+    // Timer and second enemy
+    const timerInterval = setInterval(() => {
+      if (!gameRunning) return;
+      timeLeft--;
+      timerDisplay.textContent = "Time: " + timeLeft;
+
+      if (timeLeft === 30 && !secondEnemyActive) {
+        secondEnemyActive = true;
+        enemy2.style.display = "block";
+      }
+
+      if (timeLeft <= 0) {
+        gameRunning = false;
+        winText.style.display = "block";
+        clearInterval(timerInterval);
+        clearInterval(speedInterval);
+        return;
+      }
+    }, 1000);
+
+    // Increase enemy speed every 10 seconds
+    const speedInterval = setInterval(() => {
+      if (gameRunning) {
+        enemy1Speed += 0.5;
+        enemy2Speed += 0.3; // другий ворог збільшує швидкість повільніше
+      }
+    }, 10000);
+
+    function moveEnemy(enemyEl, enemyPos, playerPos, speed) {
+      const dx = playerPos.x - enemyPos.x;
+      const dy = playerPos.y - enemyPos.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance > 1) {
+        enemyPos.x += (dx / distance) * speed;
+        enemyPos.y += (dy / distance) * speed;
+      }
+      enemyEl.style.left = enemyPos.x + "px";
+      enemyEl.style.top = enemyPos.y + "px";
+    }
+
+    function checkCollision(x1, y1, x2, y2) {
+      return Math.abs(x1 - x2) < 80 && Math.abs(y1 - y2) < 80;
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+
+      // Move player toward cursor
+      const dx = targetX - playerX;
+      const dy = targetY - playerY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 1) {
+        playerX += (dx / dist) * playerSpeed;
+        playerY += (dy / dist) * playerSpeed;
+      }
+      player.style.left = playerX + "px";
+      player.style.top = playerY + "px";
+
+      // Move enemies
+      moveEnemy(enemy1, {x: enemy1X, y: enemy1Y}, {x: playerX, y: playerY}, enemy1Speed);
+      enemy1X = parseFloat(enemy1.style.left);
+      enemy1Y = parseFloat(enemy1.style.top);
+
+      if (secondEnemyActive) {
+        moveEnemy(enemy2, {x: enemy2X, y: enemy2Y}, {x: playerX, y: playerY}, enemy2Speed);
+        enemy2X = parseFloat(enemy2.style.left);
+        enemy2Y = parseFloat(enemy2.style.top);
+      }
+
+      // Check collisions
+      if (checkCollision(playerX, playerY, enemy1X, enemy1Y) ||
+          (secondEnemyActive && checkCollision(playerX, playerY, enemy2X, enemy2Y))) {
+        gameOverText.style.display = "block";
+        gameRunning = false;
+        clearInterval(timerInterval);
+        clearInterval(speedInterval);
+        gameMusic.pause();
+        return;
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
